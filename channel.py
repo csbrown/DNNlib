@@ -15,8 +15,32 @@ class Channel(object):
     #this should hold backpropogating feedback objects
     self.feedbackQ = Queue.Queue()
 
-    self.receiver = None #threading.Thread(target = self.receive)
-    self.sender = None #threading.Thread(target = self.send)
+  def _safeGet(self, q):
+    try:
+      if not q.isempty():
+        signal = q.get(False)
+        return signal
+    except Queue.Empty:
+      raise Exception("Too many people getting from q: " + str(q))
+
+  def _safePut(self, q, signal):
+    try:
+      if not q.isfull():
+        q.put(signal, False)
+    except Queue.Full:
+      raise Exception("Too many people putting to q: " + str(q))
+
+  def getSignal(self):
+    return self._safeGet(self.signalQ)
+  def putSignal(self, signal):
+    self._safePut(self.signalQ, signal)
+
+  def getFeedback(self):
+    return self._safeGet(self.feedbackQ)
+  def putFeedback(self, signal):
+    self._safePut(self.feedbackQ, signal)
+
+
   def receive(self):
     pass
 
@@ -30,7 +54,15 @@ class Channel(object):
 
 
   
-        
+#This class provides an endless stream of ones, and just discards feedback
+class BiasChannel(object):   
+  def __init__(self):
+    self.ID = createID()
+  def getSignal(self): return 1
+  def putFeedback(self, signal): pass #empty function
+  def getFeedback(self): self.freakOut()
+  def putSignal(self, signal): self.freakOut()
+  def freakOut(self): raise Exception("You can't have a BiasChannel downstream from you!")
 
 
 

@@ -15,17 +15,20 @@ class Signal(object):
 
 #This shit is kinda jank.  I'm storing the signals like 3 times
 
-#{ outSignal : [(Channel, inSignalID)] }
-class SignalLog(dict):
+
+class SignalLog(object):
   MAXSIZE = 10
 
   def __init__(self):
+    #TODO: The only thing we need from the inSignals is the ID... Fix that.
     #[(Channel, inSignal)]
     self.currentLog = []
-    #We want our log to be FIFO
+    #We want our log to be FIFO [outSignal]
     self.signalDeque = deque()
-    #We need to look up signals by ID
-    self.signalLookup = {}
+    #We need to look up signals by ID { signalID : outSignal }
+    self.outSignalLookup = {}
+    #We need to look up in signals by outsignal #{ outSignalID : [(Channel, inSignal)] }
+    self.inSignalLookup = {}
 
   def logIn(self, channel, signal):
     self.currentLog.append((channel, signal.ID))
@@ -42,7 +45,5 @@ class SignalLog(dict):
       deleteSignal = signalDeque.popleft()
       del self[deleteSignal]
       del self.signalLookup[deleteSignal.ID]
+
       
-
-
-
