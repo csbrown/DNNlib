@@ -1,10 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import Queue
-import threading
 from util import *
 from signaling import *
-from chanel import *
+from channel import *
 
 
 
@@ -18,10 +16,6 @@ from chanel import *
 
 #this is a generic linear node class.  If you want to use a different function, override the signalFilter and dsignalFilter methods
 class Node(object):
-  DEFAULT_WEIGHT = 1
-
-  #If we get no feedback, we can take that as either a good thing or a bad thing
-  FEEDBACKBIAS = 0
 
   #takes in a function to pass the linear signal through, and the derivative of that function in terms of the function... e.g. dy/dx = y
   #epsilon is a generator for the learning epsilon.  another option is sigmoid, signalFilter = tanh(z), dsignalfilter = 1-y**2

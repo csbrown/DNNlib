@@ -1,7 +1,5 @@
 import threading
 import Queue
-import util
-import signaling
 
 #this is so that we can broadcast signals in parallel over a network, or however we want.  We define a Channel-like object to implement a send and receive method with the following signatures.  This way, we can bridge two nodes with a channel if we like.  An input node and the send method get from the q, output nodes and receive method will put to the q.
 
