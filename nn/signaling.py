@@ -1,4 +1,4 @@
-
+from collections import deque
 
 #TODO: Better way to do this??
 #Feedback will just be a signal in the opposite direction
@@ -17,33 +17,45 @@ class Signal(object):
 
 
 class SignalLog(object):
-  MAXSIZE = 10
+  MAXSIZE = 100
 
   def __init__(self):
-    #TODO: The only thing we need from the inSignals is the ID... Fix that.
-    #[(Channel, inSignal)]
-    self.currentLog = []
-    #We want our log to be FIFO [outSignal]
+    #####################
+    #TODO: put in something so that signals relate to an ultimate input and ultimate output, like {ultimateInputID:(Channel, signal)} or something
+    #{signalID : {Channel : inSignalValue}  So that we can do updates and feedback 
+    self.inSignalLog = {}
+    #{signalID : outValue}  So that we can do feedback
+    self.outSignalLog = {}
+    #deque(signalID)   So that we don't spend forever waiting on feedback
     self.signalDeque = deque()
-    #We need to look up signals by ID { signalID : outSignal }
-    self.outSignalLookup = {}
-    #We need to look up in signals by outsignal #{ outSignalID : [(Channel, inSignal)] }
-    self.inSignalLookup = {}
+    #Plan:
+    #continously look for signals in
+    #when encounter new signal:
+    #  continue to look for more signals with the same ID
+    #  once we have a signal from all active inputs, broadcast
+    #
+    #To determine if an input is active:
+    #  nodes continuously broadcast an "up" signal.  It only needs to go downstream.
+    #  if all of a nodes inputs are down, shut the node down
+    #  the bias channel does not need to provide an "up" signal, since it cannot go down.
+    #  We can use the same mechanics as the signals for pings!  Just have the top level nodes generate them.
+    #####################
+
 
   def logIn(self, channel, signal):
-    self.currentLog.append((channel, signal.ID))
+    if signal.ID not in inSignalLog:
+      self.inSignalLog[signal.ID] = {}
+    self.inSignalLog[signal.ID][channel] = signal.value
 
   def logOut(self, signal):
-    self[signal] = self.currentLog
-    self.currentLog = []
 
-    self.signalDeque.append(signal)
+    self.signalDeque.append(signal.ID)
 
-    self.signalLookup[signal.ID] = signal
+    self.outSignalLog[signal.ID] = signal.value
 
     if len(signalDeque) > MAXSIZE:
-      deleteSignal = signalDeque.popleft()
-      del self[deleteSignal]
-      del self.signalLookup[deleteSignal.ID]
+      deleteSignalID = signalDeque.popleft()
+      del self.inSignalLog[deleteSignalID]
+      del self.outSignalLog[deleteSignalID]
 
       
