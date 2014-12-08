@@ -3,12 +3,13 @@ from collections import deque
 #TODO: Better way to do this??
 #Feedback will just be a signal in the opposite direction
 class Signal(object):
-  def __init__(self, ID, bias = 0.0):
-    self.value = bias
+  def __init__(self, ID, value = 0.0):
+    self.value = value
     self.ID = ID
 
-  def __hash__(self):
-    return self.ID
+  def __hash__(self): return self.ID
+  def __copy__(self): return Signal(self.ID, self.value)
+  def __deepcopy__(self,memo): return self.__copy__()
 
 
 
@@ -43,7 +44,7 @@ class SignalLog(object):
 
 
   def logIn(self, channel, signal):
-    if signal.ID not in inSignalLog:
+    if signal.ID not in self.inSignalLog:
       self.inSignalLog[signal.ID] = {}
     self.inSignalLog[signal.ID][channel] = signal.value
 
@@ -53,9 +54,11 @@ class SignalLog(object):
 
     self.outSignalLog[signal.ID] = signal.value
 
-    if len(signalDeque) > MAXSIZE:
-      deleteSignalID = signalDeque.popleft()
+    if len(self.signalDeque) > SignalLog.MAXSIZE:
+      deleteSignalID = self.signalDeque.popleft()
       del self.inSignalLog[deleteSignalID]
       del self.outSignalLog[deleteSignalID]
+
+  #TODO: Log feedback?  If we get feedback should we ditch that signal from the log?  and if so, how to keep our signalDeque?
 
       

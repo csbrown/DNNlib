@@ -3,6 +3,7 @@ import Queue
 from util import createID
 import time
 from signaling import Signal
+import copy
 
 #this is so that we can broadcast signals in parallel over a network, or however we want.  We define a Channel-like object to implement a send and receive method with the following signatures.  This way, we can bridge two nodes with a channel if we like.  An input node and the send method get from the q, output nodes and receive method will put to the q.
 
@@ -27,16 +28,18 @@ class Channel(object):
     try:
       signals = []
       while not q.empty():
-        signal.append(q.get(False))
+        signals.append(q.get(False))
         q.task_done()
-        return signals
+      return signals
     except Queue.Empty:
       raise Exception("Too many people getting from q: " + str(q))
 
   def _safePutAll(self, q, signals):
+    #make copies of the signals we send in here, since putting them in the Queue will lock them!
+    copySignals = copy.deepcopy(signals)
     try:
-      while not q.full() and signals:
-        q.put(signals.pop(), False)
+      while not q.full() and copySignals:
+        q.put(copySignals.pop(), False)
     except Queue.Full:
       raise Exception("Too many people putting to q: " + str(q))
 
@@ -83,6 +86,22 @@ class Channel(object):
     return self.ID
 
 
+
+
+  
+#This class provides a dummy channel for the bias, so that it's weight can be dealt with just like anyone else.
+class BiasChannel(object):   
+  def __init__(self):
+    self.ID = createID()
+  def getSignals(self): return [] #return no signals.  We don't know what the signal IDs are gonna be ahead of time
+  def putFeedbacks(self, signal): pass #empty function
+  def getUpPing(self): return False #Because we don't want this to factor in when we see which channels are up.
+  def putUpPing(self): pass #empty function 
+  def getFeedbacks(self): self._freakOut()
+  def putSignals(self, signal): self._freakOut()
+  def putDownPing(self): self._freakOut()
+  def getDownPing(self): self._freakOut()
+  def _freakOut(self): raise Exception("You can't have a BiasChannel downstream from you!")
 
 
 

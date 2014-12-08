@@ -63,25 +63,25 @@ class Node(object):
 
 
   def receiveInputPings(self):
-    for channel in inputs:
+    for channel in self.inputs:
       if channel.getUpPing():
         self.upInputs.add(channel)
       else:
         self.upInputs.discard(channel)
   def receiveOutputPings(self):
-    for channel in outputs:
+    for channel in self.outputs:
       if channel.getDownPing():
         self.upOutputs.add(channel)
       else:
         self.upOutputs.discard(channel)
 
   def sendPingsDown(self):
-    if upInputs:
-      for outChannel in upOutputs:
+    if self.upInputs:
+      for outChannel in self.upOutputs:
         outChannel.putUpPing()
   def sendPingsUp(self):
-    if upOutputs:
-      for inChannel in upInputs:
+    if self.upOutputs:
+      for inChannel in self.upInputs:
         inChannel.putDownPing()
 
 
@@ -96,14 +96,14 @@ class Node(object):
   def readySignalsToSend(self):
     signalsToSend = []
     for signalID in self.signalLog.inSignalLog:
-      if self.signalReady(signalID)
+      if self.signalReady(signalID):
         signalsToSend.append(self.readySignalToSend(signalID))
     return signalsToSend
 
   #This takes in a signalID and accumulates everything into an out signal, all ready to send out
   def readySignalToSend(self,signalID):
     self.signalLog.inSignalLog[signalID][self._biasChannel] = 1  #add in the bias
-    linearSignal = sum(self.signalLog.inSignalLog[signalID].values())
+    linearSignal = sum([self.inputs[chan]*val for chan, val in self.signalLog.inSignalLog[signalID].iteritems()])
     outSignalValue = self.signalFilter(linearSignal)
     return Signal(signalID, outSignalValue)
 
@@ -117,7 +117,11 @@ class Node(object):
 
   #reports whether a signal is ready to send
   def signalReady(self, signalID):
-    for channel in self.inputs:
+    #There's gotta be a better way to do this::
+    #if we've sent a signal out, don't send another.  If we've got signals in from all our channels, send one out.
+    if signalID in self.signalLog.outSignalLog:
+      return False
+    for channel in self.upInputs:
       if channel not in self.signalLog.inSignalLog[signalID]:
         return False
     return True
@@ -137,14 +141,14 @@ class Node(object):
   def sendFeedbacksAndUpdate(self, dErrordOutputs):
     #for each of THIS nodes outputs that we got feedback for, look up the channels 
     for signalID in dErrordOutputs:
-      outSignalValue = self.signalLog.outSignalLog[outSignalID]
-      inSignals = self.signalLog.inSignalLog[outSignalID]
+      outSignalValue = self.signalLog.outSignalLog[signalID]
+      inSignals = self.signalLog.inSignalLog[signalID]
       for inChannel, inSignalValue in inSignals.iteritems():
         dErrordInput = self.propogateErrorByInputValue(inChannel, outSignalValue, dErrordOutputs[signalID])
-        inChannel.putFeedback(Signal(signalID, dErrordInput))
+        inChannel.putFeedbacks([Signal(signalID, dErrordInput)])
 
         dErrordWeight = self.propogateErrorByInputWeight(inSignalValue, outSignalValue, dErrordOutputs[signalID])
-        self.update(inChannel, dErrordWeight)
+        self.updateWeight(inChannel, dErrordWeight)
 
   #dE/dy_i = SUM_k ( w_ik * dFilter(y_k) * dE/dy_k ) .... We just update one k at a time, so no sum
   def propogateErrorByInputValue(self, inChannel, outSignalValue, dErrordOutput):

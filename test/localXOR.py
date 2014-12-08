@@ -1,6 +1,8 @@
-from nn import node
-from nn import util
-from nn import channel
+import sys
+sys.path.append("../nn")
+import node
+import util
+import channel
 import threading
 import time
 import numpy as np
@@ -11,23 +13,20 @@ print node
 
 def feedForward(inputSignals, inputChannels, outputChannels):
 	for i in range(len(inputChannels)):
-		inputChannels[i].putSignal(inputSignals[i])
+		inputChannels[i].putSignals([inputSignals[i]])
 
 	time.sleep(0.1)
 
 	actuals = np.zeros(len(outputChannels))
 	for i in range(len(outputChannels)):
-		signal = outputChannels[i].getSignal()
-		while signal:
-			actuals[i] += signal.value
-			signal = outputChannels[i].getSignal()
-
+		signals = outputChannels[i].getSignals() ##Should only be one....
+		actuals[i] = signals[0]
 
 	return actuals
 
-def propogateBackward(outputSignals, outputChannels):
+def propogateBackward(feedbackSignals, outputChannels):
 	for i in range(len(outputChannels)):
-		outputChannels[i].putFeedback(outputSignals[i])
+		outputChannels[i].putFeedbacks([feedbackSignals[i]])
 
 def makeSigmoidNode():
 	return node.Node(signalFilter = util.sigmoid, dsignalFilter = util.dsigmoid)
